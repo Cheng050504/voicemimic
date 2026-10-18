@@ -23,3 +23,10 @@ FFmpeg fallback decodes compressed reference audio to temporary PCM before exist
 - Through the running Gradio API, saved the official F5 example as a named test voice, started a turn, received streamed text from the real local chat model, and generated three playable audio chunks with the real F5 model. First audio was ready after **23.66 seconds** including startup. Total speech synthesis across the three phrases was **36.48 seconds**. These are single-run server timings, not browser playback timings.
 - Browser inspection confirmed the new controls; a real Send followed by Stop displayed the stopped status with the audio output cleared. Automated cancellation tests verify that an in-flight result is not emitted after cancellation. Audible timing/race conditions under network delay are not exhaustively tested.
 - The **two-second target is not met**. Model/hardware latency and gaps between phrases remain limitations. Ten-reply target-speaker listening evaluation still requires the user's chosen reference voice and listeners. This is an operational prototype, not completed realtime performance validation.
+
+## Long-form narration
+
+- `pytest -q`: **35 passed**. New coverage includes Chinese/English text preservation during splitting, length limits, frozen voice settings, invalid job IDs, complete WAV/MP3 assembly, failure recovery without repeating completed segments, and WAV availability after MP3 export failure.
+- Real-model Gradio API smoke test used the official F5 example voice and a two-paragraph English script. Both segments generated successfully; the combined WAV and MP3 were approximately **9.6 seconds** long.
+- Reopened that task through the browser using its job ID. The resume action reused completed segments and displayed the full audio player plus WAV, MP3, and JSON download links.
+- Full 10,000-character synthesis and human listening evaluation of long-form voice consistency have not been performed. The 10,000-character limit is an input cap, not a quality guarantee. Narration has no cancellation control in this version.

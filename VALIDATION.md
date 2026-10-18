@@ -37,3 +37,10 @@ FFmpeg fallback decodes compressed reference audio to temporary PCM before exist
 - Real F5-TTS API test regenerated only segment 1 of the existing two-paragraph official-sample narration, changing its spoken wording, speed, seed, and pause. The original was retained as version 1; the new version was adopted as version 2. Full export completed at approximately 9.5 seconds.
 - Browser verification loaded the task and displayed the original and corrected text, selected parameters, current audio, historical audio, and version/adoption controls.
 - A 3–5 minute human-reviewed production script has not yet been evaluated. This validates the editing workflow, not long-form perceptual quality or a person's personality similarity.
+
+## Guided interview capture and reviewed expression profiles
+
+- **46 tests pass**. Coverage includes consent, record/transcribe/review/export, exclusion of unreviewed samples, exact-quote grounding, separate observation approval, evidence invalidation after edits, confirmed deletion and derived-data removal, and invalid IDs.
+- Real local Whisper-base inference transcribed the official F5 example recording as “Some call me nature, others call me mother nature.” and returned a 0–5 second timestamped chunk.
+- Real local Ollama `qwen2.5:1.5b` produced one valid, source-grounded observation on a clearly synthetic text fixture in a temporary interview store. The observation remained unapproved. This tests the pipeline, not actual personality fidelity.
+- No 10–15 minute participant interview, microphone permission flow, Mandarin transcription benchmark, or human personality evaluation has been completed. Voice/prosody extraction and training are future milestones. Exact quotes do not establish the truth of an inferred trait.

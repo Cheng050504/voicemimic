@@ -2,13 +2,13 @@
 
 Narration refinement is the final planned narration-tool milestone. Do not keep expanding into a general audio editor unless requested. The core goal is a correctable approximation of the consenting speaker's voice, delivery, and characteristic responses.
 
-## Next: conversation capture and review
+## Implemented prototype: conversation capture and review
 
 Record participant-authorized conversations with speaker attribution, timestamped audio, transcripts, and context. Preserve pauses and corrections. Let the participant review, remove, and approve samples. Separate the participant's speech from the interviewer and generated assistant speech. Begin with uploads/review before assuming reliable realtime turn-taking.
 
 Acceptance: one reviewed conversation can be split into speaker-specific, timestamped samples and linked transcript excerpts, with deletable source data and explicit provenance.
 
-## Voice and prosody from multiple conversations
+## Next after participant validation: voice and prosody from multiple conversations
 
 Collect examples across explaining, storytelling, casual chat, questions, and disagreement. Compare reference selection and conditioning across these contexts, measuring timbre, speech rate, pitch movement, emphasis, and pauses separately. Do not assume pitch reveals personality or that a universal speaker embedding transfers between models.
 

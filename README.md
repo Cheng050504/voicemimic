@@ -64,3 +64,25 @@ This project integrates F5-TTS rather than training a model. **Upstream code is 
 - [Reference audio guidance](https://github.com/SWivid/F5-TTS/blob/main/src/f5_tts/infer/README.md)
 
 Next milestones: speaker evaluation dataset → improve delivery/prosody → learn phrasing from approved conversations → real-time interaction.
+
+## Milestone 02: saved voices and spoken chat
+
+The new section below the timbre lab saves a named voice under `data/voices/<voice_id>/` (reference WAV, transcript, settings, permission attestation). Save the reference once, select the saved voice, and reuse it in chat. `VOICEMIMIC_PROFILE_DIR` overrides the profile location. Profile folders can be copied together to another installation or deleted while the app is stopped; never commit recordings. Loading a profile restores its original permission attestation.
+
+The default conversational backend is **Ollama on localhost:11434**. Install Ollama from its official site or your package manager, then run:
+
+```sh
+ollama serve
+# In a second terminal; this downloads a local model:
+ollama pull qwen2.5:1.5b
+# In the activated VoiceMimic environment:
+VOICEMIMIC_CHAT_MODEL=qwen2.5:1.5b voicemimic
+```
+
+You can enter another installed model name in Chat connection. Use local models for local-only processing; Ollama's cloud-backed models, if enabled in your Ollama installation, have different data handling. To disable that feature start Ollama with `OLLAMA_NO_CLOUD=1`. This prototype has no OpenAI API integration and requires no cloud API key. The small example chat model is a functional baseline, not a recommendation for demanding reasoning tasks.
+
+Type a message and select **Send & speak**. A bounded background queue receives chat text while F5-TTS synthesizes completed sentences or bounded phrases. The voice model stays loaded across requests. Audio is emitted phrase by phrase, not token by token, so gaps remain possible. Browser autoplay restrictions may require pressing Play.
+
+**Stop reply** clears buffered playback and invalidates the current turn. Sending another message also invalidates the old turn. A running F5 calculation is not forcibly interrupted; its result is discarded, and a new voice request waits for the model lock. Cancellation does not immediately reclaim GPU time. Chat history includes completed replies only, with up to the last 20 messages sent as model context. Interrupted or failed replies are not committed to history. Speech run folders still contain generated text/audio.
+
+Timing reports measure server time until the first speech file is ready, including chat/model startup; they do not measure browser buffering or audible playback. The two-second target is aspirational and not guaranteed. Neither speaker identity consistency across ten replies nor seamless realtime playback is certified by unit tests.

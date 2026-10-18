@@ -92,7 +92,7 @@ class VoiceService:
                 self._model = F5TTS(model="F5TTS_v1_Base")
         return self._model
 
-    def generate(self, reference, transcript, text, consent, speed=1.0, seed=42):
+    def generate(self, reference, transcript, text, consent, speed=1.0, seed=42, cancelled=None):
         if consent is not True:
             raise ValueError("Confirm that this is your voice or you have the speaker's permission.")
         transcript, text = (transcript or "").strip(), (text or "").strip()
@@ -107,7 +107,11 @@ class VoiceService:
         mono, sr, quality = inspect_audio(reference)
         # F5 sets global random seeds, so model load and inference share one lock.
         with self._lock:
+            if cancelled is not None and cancelled.is_set():
+                raise RuntimeError("Generation cancelled.")
             model = self._load_model()
+            if cancelled is not None and cancelled.is_set():
+                raise RuntimeError("Generation cancelled.")
             run = self.output_dir / uuid.uuid4().hex
             run.mkdir(parents=True)
             try:

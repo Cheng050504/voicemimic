@@ -15,3 +15,11 @@ Remaining: evaluate a consenting target speaker on unseen sentences; assess pron
 ## M4A support
 
 FFmpeg fallback decodes compressed reference audio to temporary PCM before existing quality checks. All 19 tests pass, including actual AAC-in-M4A decoding and passage through generation with a test model, rejection of overlong M4A, missing FFmpeg, and corrupt files. No additional real-model inference was needed for this input-format change.
+
+## Saved profiles and spoken chat
+
+- `pytest -q`: **28 passed**, including persisted profiles, invalid profile IDs, permission requirements, sentence buffering, cancellation isolation between sessions, suppression of audio after cancellation, and chat errors.
+- Installed Ollama locally and downloaded `qwen2.5:1.5b` for the integration smoke test.
+- Through the running Gradio API, saved the official F5 example as a named test voice, started a turn, received streamed text from the real local chat model, and generated three playable audio chunks with the real F5 model. First audio was ready after **23.66 seconds** including startup. Total speech synthesis across the three phrases was **36.48 seconds**. These are single-run server timings, not browser playback timings.
+- Browser inspection confirmed the new controls; a real Send followed by Stop displayed the stopped status with the audio output cleared. Automated cancellation tests verify that an in-flight result is not emitted after cancellation. Audible timing/race conditions under network delay are not exhaustively tested.
+- The **two-second target is not met**. Model/hardware latency and gaps between phrases remain limitations. Ten-reply target-speaker listening evaluation still requires the user's chosen reference voice and listeners. This is an operational prototype, not completed realtime performance validation.

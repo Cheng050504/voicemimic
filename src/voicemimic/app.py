@@ -6,6 +6,7 @@ os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 import gradio as gr
 
 from voicemimic.core import VoiceService, inspect_audio
+from voicemimic.chat_ui import add_chat_ui
 
 EXAMPLES = [
     "I wasn't expecting that, but I'd like to hear more.",
@@ -69,6 +70,7 @@ def build_app(service=None):
         status = gr.Textbox(label="Status", interactive=False)
         manifest = gr.File(label="Download experiment record", interactive=False)
         gr.Markdown("Runs stay in `data/runs` until you delete them. They contain audio and transcripts. Model weights download on first use; reference audio is processed locally. This app does not verify permission or watermark audio.")
+        add_chat_ui(service, reference, transcript, consent, speed, seed)
         reference.change(inspect, inputs=[reference], outputs=[quality])
         button.click(generate, inputs=[reference, transcript, text, consent, speed, seed],
                      outputs=[output, manifest, status], concurrency_limit=1)

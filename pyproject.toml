@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "voicemimic"
+version = "0.1.0"
+description = "Local voice-timbre research workbench"
+requires-python = ">=3.10,<3.13"
+dependencies = ["gradio>=6.0,<7", "numpy>=1.24,<3", "soundfile>=0.12,<1"]
+
+[project.optional-dependencies]
+voice = ["f5-tts==1.1.17"]
+dev = ["pytest>=8,<9"]
+
+[project.scripts]
+voicemimic = "voicemimic.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

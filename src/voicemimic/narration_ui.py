@@ -5,6 +5,7 @@ import gradio as gr
 
 from voicemimic.narration import NarrationService
 from voicemimic.profiles import ProfileStore
+from voicemimic.editor_ui import add_editor
 
 
 def add_narration_ui(voice_service):
@@ -57,3 +58,5 @@ def add_narration_ui(voice_service):
     outputs = [job_id, status, player, wav, mp3, manifest]
     generate.click(start, [text, voice], outputs, concurrency_id="narration", concurrency_limit=1)
     retry.click(resume, [job_id], outputs, concurrency_id="narration", concurrency_limit=1)
+
+    add_editor(service, job_id, [player, wav, mp3, manifest], resume, status)

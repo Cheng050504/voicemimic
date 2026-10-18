@@ -81,3 +81,55 @@ def test_wav_survives_mp3_export_failure(tmp_path, profile, monkeypatch):
         for event in service.run(job_id):
             events.append(event)
     assert sf.info(events[-1]['wav']).duration == 1
+
+
+@pytest.mark.skipif(not shutil.which('ffmpeg'), reason='FFmpeg export integration')
+def test_edit_one_segment_versions_and_remerge(tmp_path, profile):
+    speech = Speech(profile)
+    service = NarrationService(speech, tmp_path / 'jobs')
+    job_id = service.create('Original first.\n\nOriginal second.', profile)
+    list(service.run(job_id))
+    folder, _ = service.load(job_id)
+    second = (folder / 'part-0001.wav').read_bytes()
+    version = service.regenerate(job_id, 0, 'Corrected pronunciation.', 1.1, 1.5, 9)
+    _, job = service.load(job_id)
+    chunk = job['chunks'][0]
+    assert chunk['text'] == 'Original first.'
+    assert chunk['spoken_text'] == 'Corrected pronunciation.'
+    assert len(chunk['versions']) == 2
+    assert chunk['selected_version'] == version
+    assert (folder / 'part-0001.wav').read_bytes() == second
+    assert len(speech.calls) == 3
+    final = list(service.run(job_id))[-1]
+    assert sf.info(final['wav']).duration == pytest.approx(3.5)
+    assert len(speech.calls) == 3
+    service.select_version(job_id, 0, 'v0')
+    _, job = service.load(job_id)
+    assert job['chunks'][0]['spoken_text'] == 'Original first.'
+    assert job['chunks'][0]['speed'] == 1
+    service.set_pause(job_id, 0, 2)
+    assert service.load(job_id)[1]['chunks'][0]['pause'] == 2
+    assert len(speech.calls) == 3
+
+
+def test_failed_regeneration_preserves_original(tmp_path, profile):
+    speech = Speech(profile)
+    service = NarrationService(speech, tmp_path / 'jobs')
+    job_id = service.create('Original.', profile)
+    folder, _ = service.load(job_id)
+    shutil.copyfile(profile['reference'], folder / 'part-0000.wav')
+    before = (folder / 'job.json').read_bytes()
+    original = (folder / 'part-0000.wav').read_bytes()
+    speech.fail_on = 1
+    with pytest.raises(RuntimeError):
+        service.regenerate(job_id, 0, 'New.', 1, .5, 42)
+    assert (folder / 'job.json').read_bytes() == before
+    assert (folder / 'part-0000.wav').read_bytes() == original
+
+
+@pytest.mark.parametrize('pause', [-1, 6, float('nan')])
+def test_invalid_edit_pause(tmp_path, profile, pause):
+    service = NarrationService(Speech(profile), tmp_path / 'jobs')
+    job_id = service.create('Original.', profile)
+    with pytest.raises(ValueError):
+        service.set_pause(job_id, 0, pause)

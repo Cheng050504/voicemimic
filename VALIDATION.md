@@ -30,3 +30,10 @@ FFmpeg fallback decodes compressed reference audio to temporary PCM before exist
 - Real-model Gradio API smoke test used the official F5 example voice and a two-paragraph English script. Both segments generated successfully; the combined WAV and MP3 were approximately **9.6 seconds** long.
 - Reopened that task through the browser using its job ID. The resume action reused completed segments and displayed the full audio player plus WAV, MP3, and JSON download links.
 - Full 10,000-character synthesis and human listening evaluation of long-form voice consistency have not been performed. The 10,000-character limit is an input cap, not a quality guarantee. Narration has no cancellation control in this version.
+
+## Narration refinement
+
+- **40 tests passed**. New coverage verifies single-segment edits preserve the original script and other audio, archived versions can be restored, pause-only edits avoid inference, re-export reuses segments, failed regeneration preserves the old version, and pause bounds reject invalid values.
+- Real F5-TTS API test regenerated only segment 1 of the existing two-paragraph official-sample narration, changing its spoken wording, speed, seed, and pause. The original was retained as version 1; the new version was adopted as version 2. Full export completed at approximately 9.5 seconds.
+- Browser verification loaded the task and displayed the original and corrected text, selected parameters, current audio, historical audio, and version/adoption controls.
+- A 3–5 minute human-reviewed production script has not yet been evaluated. This validates the editing workflow, not long-form perceptual quality or a person's personality similarity.

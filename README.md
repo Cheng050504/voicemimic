@@ -93,4 +93,15 @@ The **长文案配音 · 完整音频** section accepts up to 10,000 characters 
 
 Progress is displayed per segment. On completion, preview the full audio and download WAV, MP3, and the JSON job record. Files are local under `data/narrations/<job_id>/` (override with `VOICEMIMIC_NARRATION_DIR`). Reference audio and full script are included there and excluded from Git.
 
-Save the displayed job ID to resume after refreshing the page or restarting the app. **继续 / 重试原任务** resumes the original script and voice snapshot, reusing completed audio segments. Changing the script or voice requires **生成完整配音**, which creates a new job. Failed MP3 export retains the WAV; retrying exports again without resynthesizing completed segments. This version does not offer segment editing or a cancel button for narration; jobs run serially and may take minutes on this hardware. Stop reply controls chat only.
+Save the displayed job ID to resume after refreshing the page or restarting the app. **继续 / 重试原任务** resumes the original script and voice snapshot, reusing completed audio segments. Changing the script or voice requires **生成完整配音**, which creates a new job. Failed MP3 export retains the WAV; retrying exports again without resynthesizing completed segments. The refinement section supports segment editing and versions; narration has no cancel button, and jobs run serially and may take minutes on this hardware. Stop reply controls chat only.
+
+
+## Narration refinement (last narration milestone)
+
+Under **配音精修**, load an existing narration job and choose a segment. The original script is read-only. Edit **实际读法** for names, numbers, or abbreviations; set the segment speed, extra pause (0–5 seconds), and random seed; then generate only that segment. A new seed permits variation but does not guarantee a better result.
+
+Successful regeneration archives the original and adds a new version. The latest version is adopted automatically. Select a historical version to audition it, then click **采用此版本** to restore its audio and generation settings. **只保存停顿** changes the extra silence without speech inference; it does not trim silence already produced by the model. Selecting a historical version restores its saved pause; adjust again if desired.
+
+After any edit, the UI clears previous full-output downloads. Click **重新合并并导出完整音频** to rebuild WAV/MP3 from the chosen segment versions without regenerating other completed segments. Failed regeneration preserves the current audio and job metadata. Version files remain inside the job folder. Already downloaded exports and views open in other browser tabs remain older snapshots; re-export before using them.
+
+This finishes the planned narration tooling scope. Subsequent development returns to consented conversation collection, voice/prosody modeling, and evidence-based personality/expression modeling; see ROADMAP.md.

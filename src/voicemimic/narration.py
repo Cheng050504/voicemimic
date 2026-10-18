@@ -85,8 +85,8 @@ class NarrationService:
                 save_json(manifest, job)
                 yield {"status": f"正在生成第 {i + 1}/{total} 段…", "job_id": job_id}
                 audio, _, _ = self.voice_service.generate(
-                    str(folder / "reference.wav"), job["transcript"], chunk["text"], True,
-                    job["speed"], job["seed"],
+                    str(folder / "reference.wav"), job["transcript"], chunk.get("spoken_text", chunk["text"]), True,
+                    chunk.get("speed", job["speed"]), chunk.get("seed", job["seed"]),
                 )
                 temporary = target.with_suffix(".tmp")
                 shutil.copyfile(audio, temporary)
@@ -127,3 +127,69 @@ class NarrationService:
             job.update(status="failed", error=str(exc))
             save_json(manifest, job)
             raise
+
+    def segment(self, job_id, index):
+        folder, job = self.load(job_id)
+        if index is None or int(index) != float(index) or not 0 <= int(index) < len(job['chunks']):
+            raise ValueError('请选择有效的段落。')
+        index = int(index)
+        chunk = job['chunks'][index]
+        target = folder / f'part-{index:04d}.wav'
+        return folder, job, chunk, target
+
+    def _archive_original(self, folder, job, chunk, target):
+        if not chunk.get('versions') and target.exists():
+            original = target.stem + '-v0.wav'
+            shutil.copyfile(target, folder / original)
+            chunk['versions'] = [dict(id='v0', file=original, spoken_text=chunk['text'],
+                                      speed=job['speed'], seed=job['seed'], pause=chunk['pause'])]
+            chunk['selected_version'] = 'v0'
+
+    def regenerate(self, job_id, index, spoken_text, speed, pause, seed):
+        import math
+        folder, job, chunk, target = self.segment(job_id, index)
+        spoken_text = (spoken_text or '').strip()
+        if not spoken_text or len(spoken_text) > 600:
+            raise ValueError('实际读法需为 1–600 个字符。')
+        if not math.isfinite(float(pause)) or not 0 <= float(pause) <= 5:
+            raise ValueError('停顿需在 0–5 秒之间。')
+        # VoiceService validates speed and seed before model loading.
+        audio, _, _ = self.voice_service.generate(str(folder / 'reference.wav'), job['transcript'],
+                                                  spoken_text, True, speed, seed)
+        self._archive_original(folder, job, chunk, target)
+        version_id = uuid.uuid4().hex[:12]
+        filename = target.stem + '-' + version_id + '.wav'
+        shutil.copyfile(audio, folder / filename)
+        version = dict(id=version_id, file=filename, spoken_text=spoken_text,
+                       speed=float(speed), seed=int(seed), pause=float(pause))
+        chunk.setdefault('versions', []).append(version)
+        temporary = target.with_suffix('.tmp')
+        shutil.copyfile(folder / filename, temporary)
+        temporary.replace(target)
+        chunk.update(selected_version=version_id, spoken_text=spoken_text, speed=float(speed),
+                     pause=float(pause), seed=int(seed), file=target.name)
+        job.update(status='needs_export', error=None)
+        save_json(folder / 'job.json', job)
+        return version_id
+
+    def select_version(self, job_id, index, version_id):
+        folder, job, chunk, target = self.segment(job_id, index)
+        version = next((v for v in chunk.get('versions', []) if v['id'] == version_id), None)
+        if version is None:
+            raise ValueError('找不到此版本。')
+        temporary = target.with_suffix('.tmp')
+        shutil.copyfile(folder / version['file'], temporary)
+        temporary.replace(target)
+        chunk.update(selected_version=version_id, spoken_text=version['spoken_text'],
+                     speed=version['speed'], seed=version['seed'], pause=version['pause'])
+        job.update(status='needs_export', error=None)
+        save_json(folder / 'job.json', job)
+
+    def set_pause(self, job_id, index, pause):
+        import math
+        if not math.isfinite(float(pause)) or not 0 <= float(pause) <= 5:
+            raise ValueError('停顿需在 0–5 秒之间。')
+        folder, job, chunk, _ = self.segment(job_id, index)
+        chunk['pause'] = float(pause)
+        job.update(status='needs_export', error=None)
+        save_json(folder / 'job.json', job)

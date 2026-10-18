@@ -3,6 +3,8 @@ import hashlib
 import json
 import math
 import shutil
+import subprocess
+import tempfile
 import threading
 import time
 import uuid
@@ -12,18 +14,45 @@ import numpy as np
 import soundfile as sf
 
 
-def inspect_audio(path):
-    if not path or not Path(path).is_file():
-        raise ValueError("Upload a reference WAV or FLAC recording first.")
-    if Path(path).stat().st_size > 20 * 1024 * 1024:
-        raise ValueError("Reference audio must be smaller than 20 MB.")
+def _read_audio(path):
+    """Decode native formats directly, falling back to FFmpeg for M4A/AAC."""
     try:
         info = sf.info(path)
-        if not 3 <= info.duration <= 12:
-            raise ValueError("Choose a complete 3–12 second excerpt; audio is never silently trimmed.")
-        audio, sr = sf.read(path, dtype="float32", always_2d=True)
-    except (RuntimeError, sf.LibsndfileError) as exc:
-        raise ValueError("Cannot decode this recording. Export a WAV or FLAC file.") from exc
+    except (RuntimeError, sf.LibsndfileError):
+        ffmpeg = shutil.which("ffmpeg")
+        if not ffmpeg:
+            raise ValueError("M4A and other compressed recordings need FFmpeg. Install FFmpeg and restart the app.")
+        with tempfile.TemporaryDirectory(prefix="voicemimic-decode-") as folder:
+            decoded = Path(folder) / "decoded.wav"
+            try:
+                subprocess.run(
+                    [ffmpeg, "-nostdin", "-v", "error", "-y", "-i", str(Path(path).resolve()),
+                     "-map", "0:a:0", "-vn", "-t", "13", "-c:a", "pcm_f32le", str(decoded)],
+                    check=True, capture_output=True, timeout=30,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise ValueError("Audio decoding timed out. Try a shorter recording.") from exc
+            except subprocess.CalledProcessError as exc:
+                raise ValueError("Cannot decode this recording. Use a valid WAV, FLAC, or M4A audio file.") from exc
+            # Decode at most 13 seconds: anything above 12 is rejected, never accepted trimmed.
+            return _read_audio_native(decoded)
+    return _read_audio_native(path, info)
+
+
+def _read_audio_native(path, info=None):
+    info = info or sf.info(path)
+    if not 3 <= info.duration <= 12:
+        raise ValueError("Choose a complete 3–12 second excerpt; audio is never silently trimmed.")
+    audio, sr = sf.read(path, dtype="float32", always_2d=True)
+    return audio, sr, info.channels
+
+
+def inspect_audio(path):
+    if not path or not Path(path).is_file():
+        raise ValueError("Upload a reference WAV, FLAC, or M4A recording first.")
+    if Path(path).stat().st_size > 20 * 1024 * 1024:
+        raise ValueError("Reference audio must be smaller than 20 MB.")
+    audio, sr, channels = _read_audio(path)
     if not np.isfinite(audio).all():
         raise ValueError("Recording contains invalid samples.")
     mono = audio.mean(axis=1)
@@ -38,7 +67,7 @@ def inspect_audio(path):
     if rms < 0.01:
         warnings.append("Low recording level may reduce quality.")
     return mono, sr, {"duration_seconds": round(len(mono) / sr, 3),
-                      "sample_rate": sr, "channels": info.channels,
+                      "sample_rate": sr, "channels": channels,
                       "rms": round(rms, 5), "warnings": warnings}
 
 

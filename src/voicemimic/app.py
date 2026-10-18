@@ -52,7 +52,7 @@ def build_app(service=None):
             with gr.Column():
                 gr.Markdown("### 1. Reference voice")
                 reference = gr.Audio(sources=["upload", "microphone"], type="filepath", label="Reference · 3–12 seconds")
-                gr.Markdown("One speaker, no background music. Finish the sentence and leave a short pause. Upload WAV or FLAC.")
+                gr.Markdown("One speaker, no background music. Finish the sentence and leave a short pause. Upload WAV, FLAC, or M4A.")
                 quality = gr.Textbox(label="Recording check", interactive=False)
                 transcript = gr.Textbox(label="Exact words in the reference", lines=3, placeholder="Type every spoken word, including fillers.")
                 consent = gr.Checkbox(label="This is my voice, or I have the speaker's permission to synthesize it.")

@@ -11,3 +11,7 @@ Validated on October 18, 2026 on Apple Silicon with Python 3.12.14.
 Tested versions: f5-tts 1.1.17, Gradio 6.30.0, torch 2.14.1, torchaudio 2.11.0, soundfile 0.14.0. Other platforms have not been tested.
 
 Remaining: evaluate a consenting target speaker on unseen sentences; assess pronunciation, naturalness, and timbre resemblance with human listeners. No claim of measured speaker similarity or live-conversation performance is made. Microphone permission and browser recording have not been manually tested; upload is the recommended first experiment.
+
+## M4A support
+
+FFmpeg fallback decodes compressed reference audio to temporary PCM before existing quality checks. All 19 tests pass, including actual AAC-in-M4A decoding and passage through generation with a test model, rejection of overlong M4A, missing FFmpeg, and corrupt files. No additional real-model inference was needed for this input-format change.

@@ -1,4 +1,6 @@
 import json
+import shutil
+import subprocess
 
 import numpy as np
 import pytest
@@ -71,3 +73,41 @@ def test_model_is_reused(reference, tmp_path):
     for _ in range(2):
         service.generate(reference, "Hello there.", "A new sentence.", True)
     assert len(calls) == 1
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="FFmpeg integration test")
+def test_m4a_decodes_and_generates(reference, tmp_path):
+    m4a = tmp_path / "voice recording.m4a"
+    subprocess.run(["ffmpeg", "-v", "error", "-i", reference, "-c:a", "aac", str(m4a)], check=True)
+    mono, sr, quality = inspect_audio(str(m4a))
+    assert sr == 24000
+    assert 3.9 < quality["duration_seconds"] < 4.2
+    assert np.sqrt(np.mean(mono ** 2)) > 0.1
+    audio, _, _ = VoiceService(tmp_path / "runs", FakeModel).generate(
+        str(m4a), "Hello there.", "A new sentence.", True)
+    assert sf.info(audio).duration == 1
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="FFmpeg integration test")
+def test_long_m4a_is_rejected_not_silently_trimmed(reference, tmp_path):
+    m4a = tmp_path / "long.m4a"
+    subprocess.run(["ffmpeg", "-v", "error", "-stream_loop", "3", "-i", reference,
+                    "-c:a", "aac", str(m4a)], check=True)
+    with pytest.raises(ValueError, match="3–12 second"):
+        inspect_audio(str(m4a))
+
+
+def test_compressed_audio_without_ffmpeg(tmp_path, monkeypatch):
+    path = tmp_path / "voice.m4a"
+    path.write_bytes(b"not native audio")
+    monkeypatch.setattr(shutil, "which", lambda _: None)
+    with pytest.raises(ValueError, match="need FFmpeg"):
+        inspect_audio(str(path))
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="FFmpeg integration test")
+def test_corrupt_m4a_has_helpful_error(tmp_path):
+    path = tmp_path / "corrupt.m4a"
+    path.write_bytes(b"invalid audio")
+    with pytest.raises(ValueError, match="Cannot decode"):
+        inspect_audio(str(path))

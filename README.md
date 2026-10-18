@@ -25,7 +25,7 @@ The first generation downloads weights from Hugging Face and can take substantia
 ## First experiment
 
 1. Use your own voice or obtain the speaker's permission.
-2. Upload WAV/FLAC or record **3–12 seconds** of clean speech. Finish the sentence and leave a short pause. Longer recordings must be excerpted manually with a matching transcript: the app never silently trims them.
+2. Upload WAV/FLAC/M4A or record **3–12 seconds** of clean speech. Finish the sentence and leave a short pause. Longer recordings must be excerpted manually with a matching transcript: the app never silently trims them.
 3. Enter the exact transcript, including spoken fillers. This avoids loading an additional transcription model.
 4. Enter a short new sentence or choose one of the ten examples. Start at speed 1.0 and seed 42.
 5. Generate, listen to the reference and output, and download the WAV and JSON experiment record.

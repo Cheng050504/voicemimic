@@ -1,4 +1,4 @@
-"""Saved voices and text-in / streamed-audio-out controls."""
+"""已保存的声音s and text-in / streamed-audio-out controls."""
 import logging
 import os
 
@@ -74,31 +74,32 @@ def add_chat_ui(service, reference, transcript, consent, speed, seed):
         finally:
             cancelled.set()
 
-    gr.Markdown("## Saved voices & spoken chat · Milestone 02")
-    gr.Markdown("Save the reference above once, then reuse it for chat. The voice changes how replies sound; it does not copy the speaker's personality.")
+    gr.Markdown("### 保存与复用")
+    gr.Markdown("给上方声音取个名字，保存后就能在配音中选择。")
     with gr.Row():
-        name = gr.Textbox(label="Name this voice", placeholder="My voice")
-        save_button = gr.Button("Save current reference")
+        name = gr.Textbox(label="声音名称", placeholder="例如：我的日常声音")
+        save_button = gr.Button("保存这个声音")
     with gr.Row():
-        voices = gr.Dropdown(choices=store.choices(), label="Saved voice")
-        refresh = gr.Button("Refresh voices")
-        load_button = gr.Button("Load into reference controls")
-    profile_status = gr.Textbox(label="Voice profile status", interactive=False)
-    with gr.Accordion("Chat connection", open=True):
-        model = gr.Textbox(label="Installed Ollama model", value=os.environ.get("VOICEMIMIC_CHAT_MODEL", ""),
-                           placeholder="Enter a model name from ollama list")
-        gr.Markdown("Connects to Ollama at localhost:11434. Start Ollama and install a model first. Chat history stays in this browser session; speech experiment files remain on disk.")
-    history = gr.State([])
-    token = gr.State("")
-    conversation = gr.Chatbot(label="Conversation", height=300)
-    message = gr.Textbox(label="Your message", max_length=2000)
-    with gr.Row():
-        send = gr.Button("Send & speak", variant="primary")
-        stop_button = gr.Button("Stop reply")
-    speech = gr.Audio(label="AI voice reply", streaming=True, autoplay=True, interactive=False,
-                      format="wav", elem_id="chat-speech")
-    status = gr.Textbox(label="Chat status", interactive=False)
-    gr.Markdown("If autoplay is blocked, press Play. Stop clears buffered speech immediately; an active model calculation may continue until the current phrase finishes.")
+        voices = gr.Dropdown(choices=store.choices(), label="已保存的声音")
+        refresh = gr.Button("刷新列表")
+        load_button = gr.Button("载入声音")
+    profile_status = gr.Textbox(label="保存状态", interactive=False)
+    with gr.Accordion("与这个声音聊天（实验功能，生成较慢）", open=False):
+        with gr.Accordion("聊天模型设置", open=False):
+            model = gr.Textbox(label="本机模型名称", value=os.environ.get("VOICEMIMIC_CHAT_MODEL", ""),
+                               placeholder="Enter a model name from ollama list")
+            gr.Markdown("Connects to Ollama at localhost:11434. Start Ollama and install a model first. Chat history stays in this browser session; speech experiment files remain on disk.")
+        history = gr.State([])
+        token = gr.State("")
+        conversation = gr.Chatbot(label="对话", height=300)
+        message = gr.Textbox(label="你想说什么？", max_length=2000)
+        with gr.Row():
+            send = gr.Button("发送并朗读", variant="primary")
+            stop_button = gr.Button("停止")
+        speech = gr.Audio(label="语音回复", streaming=True, autoplay=True, interactive=False,
+                          format="wav", elem_id="chat-speech")
+        status = gr.Textbox(label="对话进度", interactive=False)
+        gr.Markdown("If autoplay is blocked, press Play. Stop clears buffered speech immediately; an active model calculation may continue until the current phrase finishes.")
 
     save_button.click(save, [name, reference, transcript, consent, speed, seed], [voices, profile_status])
     refresh.click(lambda: gr.update(choices=store.choices()), outputs=[voices])

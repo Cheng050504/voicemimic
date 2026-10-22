@@ -22,12 +22,22 @@ Open http://127.0.0.1:7860. On Linux, install FFmpeg with your package manager; 
 
 The first generation downloads weights from Hugging Face and can take substantially longer. The UI starts without loading weights. There is no API key or paid service. Missing dependencies and inference failures are displayed in the status box; unexpected errors are logged in the terminal.
 
+## Finding your way around
+
+The interface has three focused tabs:
+
+- **对话采集**: create a participant profile, record an answer, review its transcript, then confirm evidence-backed observations. Saving a recording opens the transcript step.
+- **我的声音**: add a short reference, try a new sentence, and save the voice. Experimental spoken chat is collapsed below.
+- **配音与试听**: select a saved voice, paste a script, and download the complete audio. Resume and segment editing are optional collapsed sections.
+
+Model settings, source metadata, and deletion controls stay collapsed until needed. Interview recordings and saved synthesis voices are currently separate workflows; an interview does not automatically create a synthesis voice.
+
 ## First experiment
 
 1. Use your own voice or obtain the speaker's permission.
 2. Upload WAV/FLAC/M4A or record **3–12 seconds** of clean speech. Finish the sentence and leave a short pause. Longer recordings must be excerpted manually with a matching transcript: the app never silently trims them.
 3. Enter the exact transcript, including spoken fillers. This avoids loading an additional transcription model.
-4. Enter a short new sentence or choose one of the ten examples. Start at speed 1.0 and seed 42.
+4. Enter a short new sentence or choose one of the examples. Start at speed 1.0 and seed 42.
 5. Generate, listen to the reference and output, and download the WAV and JSON experiment record.
 
 The baseline weights target English and Mandarin. Other languages and accents need explicit evaluation. The app checks duration, sample rate, silence, and likely clipping; it does **not** automatically detect background music, multiple speakers, or transcript accuracy.
@@ -67,7 +77,7 @@ Next milestones: speaker evaluation dataset → improve delivery/prosody → lea
 
 ## Milestone 02: saved voices and spoken chat
 
-The new section below the timbre lab saves a named voice under `data/voices/<voice_id>/` (reference WAV, transcript, settings, permission attestation). Save the reference once, select the saved voice, and reuse it in chat. `VOICEMIMIC_PROFILE_DIR` overrides the profile location. Profile folders can be copied together to another installation or deleted while the app is stopped; never commit recordings. Loading a profile restores its original permission attestation.
+The 我的声音 tab saves a named voice under `data/voices/<voice_id>/` (reference WAV, transcript, settings, permission attestation). Save the reference once, select the saved voice, and reuse it in chat. `VOICEMIMIC_PROFILE_DIR` overrides the profile location. Profile folders can be copied together to another installation or deleted while the app is stopped; never commit recordings. Loading a profile restores its original permission attestation.
 
 The default conversational backend is **Ollama on localhost:11434**. Install Ollama from its official site or your package manager, then run:
 

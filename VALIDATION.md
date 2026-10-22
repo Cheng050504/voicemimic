@@ -44,3 +44,10 @@ FFmpeg fallback decodes compressed reference audio to temporary PCM before exist
 - Real local Whisper-base inference transcribed the official F5 example recording as “Some call me nature, others call me mother nature.” and returned a 0–5 second timestamped chunk.
 - Real local Ollama `qwen2.5:1.5b` produced one valid, source-grounded observation on a clearly synthetic text fixture in a temporary interview store. The observation remained unapproved. This tests the pipeline, not actual personality fidelity.
 - No 10–15 minute participant interview, microphone permission flow, Mandarin transcription benchmark, or human personality evaluation has been completed. Voice/prosody extraction and training are future milestones. Exact quotes do not establish the truth of an inferred trait.
+
+## Focused interface navigation
+
+- **46 tests pass** after reorganizing the interface into capture, saved voice, and narration tabs. No model or storage behavior was changed.
+- Restarted the local service; homepage returned HTTP 200. The live Gradio config exposes all six main/step tabs, and all callback input/output component IDs resolve.
+- Saving an interview recording and opening an observation source select the transcript-review step. Export, resume, and editing controls are grouped with their relevant tasks.
+- Automated browser preview was rejected by the browser security policy. This change has code/config verification, but no completed visual or interactive browser verification.

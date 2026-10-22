@@ -29,7 +29,7 @@ def build_app(service=None):
 
     def inspect(reference):
         if not reference:
-            return "Add a reference recording to check its quality."
+            return "添加录音后，会自动检查质量。"
         try:
             _, _, q = inspect_audio(reference)
             return f"{q['duration_seconds']} seconds · {q['sample_rate']} Hz. " + " ".join(q["warnings"])
@@ -38,43 +38,48 @@ def build_app(service=None):
 
     def generate(*args):
         # Clear old outputs immediately so failures cannot be mistaken for a new result.
-        yield None, None, "Loading voice engine / generating audio. First use downloads model weights."
+        yield None, None, "正在加载模型并生成试音；首次使用需要下载模型。"
         try:
             audio, manifest, metadata = service.generate(*args)
-            yield audio, manifest, f"Complete in {metadata['generation_seconds']}s. Compare the recordings below."
+            yield audio, manifest, f"已完成，用时 {metadata['generation_seconds']} 秒。请试听并对比原录音。"
         except (ValueError, RuntimeError) as exc:
             yield None, None, str(exc)
         except Exception:
             logging.exception("Voice generation failed")
-            yield None, None, "Generation failed. Check terminal logs for model download or device errors."
+            yield None, None, "生成失败，请查看终端中的模型下载或设备错误。"
 
     with gr.Blocks(title="VoiceMimic · Timbre Lab", delete_cache=(3600, 86400)) as app:
-        gr.Markdown("# VoiceMimic\n### Timbre Lab · Milestone 01\nMake new speech from a short voice reference, then listen side by side.")
-        gr.Markdown("Local research prototype · F5-TTS weights are noncommercial · English / Mandarin baseline")
-        with gr.Row():
-            with gr.Column():
-                gr.Markdown("### 1. Reference voice")
-                reference = gr.Audio(sources=["upload", "microphone"], type="filepath", label="Reference · 3–12 seconds")
-                gr.Markdown("One speaker, no background music. Finish the sentence and leave a short pause. Upload WAV, FLAC, or M4A.")
-                quality = gr.Textbox(label="Recording check", interactive=False)
-                transcript = gr.Textbox(label="Exact words in the reference", lines=3, placeholder="Type every spoken word, including fillers.")
-                consent = gr.Checkbox(label="This is my voice, or I have the speaker's permission to synthesize it.")
-            with gr.Column():
-                gr.Markdown("### 2. New speech")
-                text = gr.Textbox(label="What should the voice say?", lines=4, max_length=600)
-                gr.Examples([[x] for x in EXAMPLES], inputs=[text], label="Held-out sentence ideas")
-                with gr.Accordion("Generation settings", open=False):
-                    speed = gr.Slider(0.7, 1.3, value=1, step=0.05, label="Speaking speed")
-                    seed = gr.Number(value=42, precision=0, label="Seed · reuse for comparisons")
-                button = gr.Button("Generate speech", variant="primary")
-        gr.Markdown("### 3. Listen and compare\nPlay the reference above, then the generated audio. Rate resemblance, pronunciation, and naturalness separately.")
-        output = gr.Audio(label="AI-generated speech", type="filepath", interactive=False)
-        status = gr.Textbox(label="Status", interactive=False)
-        manifest = gr.File(label="Download experiment record", interactive=False)
-        gr.Markdown("Runs stay in `data/runs` until you delete them. They contain audio and transcripts. Model weights download on first use; reference audio is processed locally. This app does not verify permission or watermark audio.")
-        add_chat_ui(service, reference, transcript, consent, speed, seed)
-        add_narration_ui(service)
-        add_capture_ui()
+        gr.Markdown("# VoiceMimic\n从真实对话，建立你的声音与表达档案。")
+        gr.Markdown("**第一次使用？** 从「对话采集」开始。已有声音想生成音频，请选「配音与试听」。")
+        with gr.Tabs():
+            with gr.Tab("对话采集", id="capture"):
+                add_capture_ui()
+            with gr.Tab("我的声音", id="voice"):
+                with gr.Row():
+                    with gr.Column():
+                        gr.Markdown("### 1. 添加声音样本")
+                        reference = gr.Audio(sources=["upload", "microphone"], type="filepath", label="声音样本 · 3–12 秒")
+                        gr.Markdown("上传清晰的单人录音（WAV / FLAC / M4A），保留完整句子。")
+                        quality = gr.Textbox(label="录音检查", interactive=False)
+                        transcript = gr.Textbox(label="录音里说了什么？", lines=3, placeholder="填写与录音一致的文字，包含语气词。")
+                        consent = gr.Checkbox(label="这是我的声音，或我已取得说话者的合成授权。")
+                    with gr.Column():
+                        gr.Markdown("### 2. 试一句新话")
+                        text = gr.Textbox(label="试音文案", lines=4, max_length=600)
+                        gr.Examples([[x] for x in EXAMPLES[:3]], inputs=[text], label="试音例句")
+                        with gr.Accordion("更多设置", open=False):
+                            speed = gr.Slider(0.7, 1.3, value=1, step=0.05, label="语速")
+                            seed = gr.Number(value=42, precision=0, label="随机种子（相同值便于对比）")
+                        button = gr.Button("生成试音", variant="primary")
+                gr.Markdown("### 3. 听听效果\n对比原录音与生成结果。满意后，在下方保存声音。")
+                output = gr.Audio(label="生成的试音", type="filepath", interactive=False)
+                status = gr.Textbox(label="生成进度", interactive=False)
+                with gr.Accordion("生成记录", open=False):
+                    manifest = gr.File(label="下载生成记录", interactive=False)
+                gr.Markdown("音频在本机处理；首次生成需加载模型，请稍等。")
+                add_chat_ui(service, reference, transcript, consent, speed, seed)
+            with gr.Tab("配音与试听", id="narration"):
+                add_narration_ui(service)
         reference.change(inspect, inputs=[reference], outputs=[quality])
         button.click(generate, inputs=[reference, transcript, text, consent, speed, seed],
                      outputs=[output, manifest, status], concurrency_limit=1)

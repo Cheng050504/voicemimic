@@ -51,3 +51,8 @@ FFmpeg fallback decodes compressed reference audio to temporary PCM before exist
 - Restarted the local service; homepage returned HTTP 200. The live Gradio config exposes all six main/step tabs, and all callback input/output component IDs resolve.
 - Saving an interview recording and opening an observation source select the transcript-review step. Export, resume, and editing controls are grouped with their relevant tasks.
 - Automated browser preview was rejected by the browser security policy. This change has code/config verification, but no completed visual or interactive browser verification.
+
+## Conservative recording denoising
+
+- **49 tests passed**, including actual FFmpeg filtering and M4A decoding. Synthetic noisy harmonic audio verifies reduced noise-only tail energy, bounded voice-region RMS change, unchanged rate/channel/frame counts, source-file integrity, stale-preview rejection, and rejection/cleanup of silent or overlong recordings.
+- These signal checks do not establish perceptual timbre preservation on real speakers. No human A/B evaluation or browser interaction test has been completed for this feature.

@@ -1,6 +1,7 @@
 import os
 
 import gradio as gr
+from voicemimic.denoise_ui import add_denoise_ui
 
 from voicemimic.capture import InterviewStore, QUESTIONS
 
@@ -90,6 +91,7 @@ def add_capture_ui():
             gr.Examples([[q] for q in QUESTIONS[:3]], inputs=[question], label='换个话题（也可修改上方问题）')
             context = gr.Textbox(label='背景备注（选填）')
             recording = gr.Audio(label='回答录音 · 1–180 秒', sources=['upload', 'microphone'], type='filepath')
+            add_denoise_ui(recording, 180)
             add_button = gr.Button('保存回答录音', variant='primary')
         with gr.Tab("2 · 核对文字", id="review"):
             gr.Markdown("选择回答，自动转写后回听核对。确认无误，再保存审核状态。")

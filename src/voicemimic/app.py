@@ -4,6 +4,7 @@ import os
 # Disable Gradio analytics before importing it; inference stays on this machine.
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 import gradio as gr
+from voicemimic.denoise_ui import add_denoise_ui
 
 from voicemimic.core import VoiceService, inspect_audio
 from voicemimic.chat_ui import add_chat_ui
@@ -60,6 +61,7 @@ def build_app(service=None):
                         gr.Markdown("### 1. 添加声音样本")
                         reference = gr.Audio(sources=["upload", "microphone"], type="filepath", label="声音样本 · 3–12 秒")
                         gr.Markdown("上传清晰的单人录音（WAV / FLAC / M4A），保留完整句子。")
+                        add_denoise_ui(reference, 12)
                         quality = gr.Textbox(label="录音检查", interactive=False)
                         transcript = gr.Textbox(label="录音里说了什么？", lines=3, placeholder="填写与录音一致的文字，包含语气词。")
                         consent = gr.Checkbox(label="这是我的声音，或我已取得说话者的合成授权。")

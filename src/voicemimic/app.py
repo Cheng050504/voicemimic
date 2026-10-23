@@ -5,6 +5,7 @@ import os
 os.environ.setdefault("GRADIO_ANALYTICS_ENABLED", "False")
 import gradio as gr
 from voicemimic.denoise_ui import add_denoise_ui
+from voicemimic.video_ui import add_video_ui
 
 from voicemimic.core import VoiceService, inspect_audio
 from voicemimic.chat_ui import add_chat_ui
@@ -52,9 +53,9 @@ def build_app(service=None):
     with gr.Blocks(title="VoiceMimic · Timbre Lab", delete_cache=(3600, 86400)) as app:
         gr.Markdown("# VoiceMimic\n从真实对话，建立你的声音与表达档案。")
         gr.Markdown("**第一次使用？** 从「对话采集」开始。已有声音想生成音频，请选「配音与试听」。")
-        with gr.Tabs():
+        with gr.Tabs() as main_tabs:
             with gr.Tab("对话采集", id="capture"):
-                add_capture_ui()
+                recording, capture_context, capture_steps = add_capture_ui()
             with gr.Tab("我的声音", id="voice"):
                 with gr.Row():
                     with gr.Column():
@@ -82,6 +83,8 @@ def build_app(service=None):
                 add_chat_ui(service, reference, transcript, consent, speed, seed)
             with gr.Tab("配音与试听", id="narration"):
                 add_narration_ui(service)
+            with gr.Tab("视频选段", id="video"):
+                add_video_ui(reference, transcript, recording, capture_context, main_tabs, capture_steps)
         reference.change(inspect, inputs=[reference], outputs=[quality])
         button.click(generate, inputs=[reference, transcript, text, consent, speed, seed],
                      outputs=[output, manifest, status], concurrency_limit=1)

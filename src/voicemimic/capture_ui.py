@@ -142,3 +142,5 @@ def add_capture_ui():
     source_button.click(safe(source), [interview, obs], sample, **queue).success(lambda: gr.update(selected='review'), outputs=steps)
     approve.click(safe(approve_observation), [interview, obs, claim, kind, confirmed], [status, export], **queue)
     export_button.click(safe(store.export), [interview], export, **queue)
+
+    return recording, context, steps

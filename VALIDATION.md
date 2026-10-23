@@ -56,3 +56,10 @@ FFmpeg fallback decodes compressed reference audio to temporary PCM before exist
 
 - **49 tests passed**, including actual FFmpeg filtering and M4A decoding. Synthetic noisy harmonic audio verifies reduced noise-only tail energy, bounded voice-region RMS change, unchanged rate/channel/frame counts, source-file integrity, stale-preview rejection, and rejection/cleanup of silent or overlong recordings.
 - These signal checks do not establish perceptual timbre preservation on real speakers. No human A/B evaluation or browser interaction test has been completed for this feature.
+
+## Video import and timestamp selection
+
+- **53 tests pass**, including real FFmpeg extraction from a generated MP4 and actual yt-dlp retrieval over a local HTTP fixture. Checks cover 16 kHz ASR input, timestamp fallback, exact sample-count cropping, multi-sentence text overlap, invalid ranges/URLs, stale selection rejection, voice duration limits, original-upload preservation, and failed-import cleanup.
+- Real local Whisper-base recognized the bundled official F5 English example as “Some call me nature, others call me mother nature.” with a 0–5 second segment. A five-second excerpt was generated from the retained 48 kHz audio.
+- Public-platform extraction, long-video transcription accuracy, browser interactions, and human listening quality were not verified. Platform availability is not guaranteed by the local HTTP fixture test.
+- Running Gradio API smoke test completed real Whisper import, five-second excerpt creation, reference audio/transcript adoption, interview audio/source-context adoption, and rejection of an excerpt after its requested boundary changed. Homepage returned HTTP 200 and all callback component references resolved. This is API verification, not a browser visual test.

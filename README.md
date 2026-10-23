@@ -24,11 +24,12 @@ The first generation downloads weights from Hugging Face and can take substantia
 
 ## Finding your way around
 
-The interface has three focused tabs:
+The interface has four focused tabs:
 
 - **对话采集**: create a participant profile, record an answer, review its transcript, then confirm evidence-backed observations. Saving a recording opens the transcript step.
 - **我的声音**: add a short reference, try a new sentence, and save the voice. Experimental spoken chat is collapsed below.
 - **配音与试听**: select a saved voice, paste a script, and download the complete audio. Resume and segment editing are optional collapsed sections.
+- **视频选段**: import a video link or local file, select timestamped speech, and send an excerpt to voice or interview capture.
 
 Model settings, source metadata, and deletion controls stay collapsed until needed. Interview recordings and saved synthesis voices are currently separate workflows; an interview does not automatically create a synthesis voice.
 
@@ -133,3 +134,15 @@ Both **对话采集** and **我的声音** include a collapsed **录音有杂音
 The lightweight local baseline uses FFmpeg's [afftdn filter](https://www.ffmpeg.org/ffmpeg-filters.html#afftdn), with 6 dB (light) or 10 dB (standard) reduction, noise tracking, and smoothed gains. It applies no pitch/time changes, hard gate, EQ, or loudness normalization. Sample rate, channel count, and frame count are checked. Spectral filtering can still alter breathiness and consonants; use light mode first and compare by listening. Competing voices, music, clipping, and room echo are not reliably repaired by this baseline.
 
 WAV/FLAC/M4A decoding uses FFmpeg. Limits are 100 MB, 16–96 kHz, mono/stereo, and 1–180 seconds for interviews or 1–12 seconds for previewing a voice reference; synthesis still requires 3–12 seconds. Overlong inputs are rejected, never silently accepted as excerpts. Original source bytes, decoded originals, processed WAVs, and processing metadata persist under `data/denoise/<id>/` (override with `VOICEMIMIC_DENOISE_DIR`). These files are excluded from Git and are not removed when an interview or voice profile is deleted; remove the corresponding denoise folder separately if needed.
+
+## Video links and transcript-based excerpts
+
+Open **视频选段**, paste a link, and choose **读取链接并识别**. The app uses [yt-dlp](https://github.com/yt-dlp/yt-dlp) to retrieve accessible media, FFmpeg to extract audio, and the existing local Whisper model to generate timestamped text. Select one or more sentences to fill a continuous start/end interval, or enter seconds manually; then **截取并试听**. Multiple selected sentences include all intervening audio. Review the suggested text against playback, especially after cutting within a sentence.
+
+Use **用作声音样本** to fill the reference recording and transcript in 我的声音 (3–12 seconds), or **送到对话采集** to fill a recording and its source context (1–180 seconds). Existing permission and review steps still apply. Changing the source or clip boundaries requires a fresh excerpt before adoption. Denoising remains available after importing the excerpt.
+
+Limits: one non-live video, at most 30 minutes, 300 MB download/file limit, and a four-minute retrieval timeout. Downloads with unknown lengths/sizes are also checked after retrieval; FFmpeg decodes only enough to reject overlong media. Audio is normalized to mono 48 kHz PCM for editing; Whisper receives a temporary 16 kHz copy. This does not improve source fidelity. Word timing and speaker separation are not guaranteed; this version does not isolate speakers or remove background music. The existing Whisper chunked transcription can be inaccurate, especially for long/noisy material.
+
+Link support depends on platform changes, network restrictions, and the extractor. No login, browser-cookie extraction, paywall/DRM bypass, or playlist import is provided. A local video/audio upload fallback is included. If recognition fails after retrieval, the imported audio remains available for manual clipping or transcription retry. For full YouTube extractor support, yt-dlp may require an installed supported JavaScript runtime; the app enables Node when it is on PATH, and yt-dlp's default Deno support remains available. Installing the project includes yt-dlp's default dependencies.
+
+Audio, transcript timestamps, source URL/title, and excerpt provenance are saved under `data/video-imports/<id>/` (override `VOICEMIMIC_VIDEO_DIR`). Downloaded container files and downloader metadata are removed after successful conversion. Import folders are separate from voice/interview records and must be deleted separately. This remains a localhost-only, single-user prototype; do not expose the URL-fetching interface as a public service.

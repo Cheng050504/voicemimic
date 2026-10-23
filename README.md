@@ -31,7 +31,7 @@ The interface has four focused tabs:
 - **配音与试听**: select a saved voice, paste a script, and download the complete audio. Resume and segment editing are optional collapsed sections.
 - **视频选段**: import a video link or local file, select timestamped speech, and send an excerpt to voice or interview capture.
 
-Model settings, source metadata, and deletion controls stay collapsed until needed. Interview recordings and saved synthesis voices are currently separate workflows; an interview does not automatically create a synthesis voice.
+Model settings, source metadata, and deletion controls stay collapsed until needed. After reviewing an interview answer, open 下一步：用这条回答生成声音 to excerpt 3–12 seconds, verify its transcript, and send it to 我的声音. Voice synthesis permission is confirmed there; expression observations are not yet used to control generation.
 
 ## First experiment
 
@@ -131,7 +131,7 @@ Export includes only approved samples and approved observations with valid sourc
 
 Both **对话采集** and **我的声音** include a collapsed **录音有杂音？先试听降噪** panel. Preview the original and processed audio, then explicitly choose **使用降噪版** to use it for subsequent saving or synthesis. **恢复原音** restores the decoded original. Changing the uploaded recording invalidates adoption of an unrelated preview. Adjusting strength after adoption starts from the original rather than stacking filters.
 
-The lightweight local baseline uses FFmpeg's [afftdn filter](https://www.ffmpeg.org/ffmpeg-filters.html#afftdn), with 6 dB (light) or 10 dB (standard) reduction, noise tracking, and smoothed gains. It applies no pitch/time changes, hard gate, EQ, or loudness normalization. Sample rate, channel count, and frame count are checked. Spectral filtering can still alter breathiness and consonants; use light mode first and compare by listening. Competing voices, music, clipping, and room echo are not reliably repaired by this baseline.
+The lightweight local baseline uses FFmpeg's [afftdn filter](https://www.ffmpeg.org/ffmpeg-filters.html#afftdn), with 6 dB (light) or 10 dB (standard) reduction, noise tracking, and smoothed gains. The default 保真优先 blends 65% original with 35% light-filtered audio, deliberately retaining more noise. The filter delay is compensated and the tail flushed before mixing. It applies no pitch/time changes, hard gate, EQ, or loudness normalization. Sample rate, channel count, and frame count are checked. Spectral filtering can still alter breathiness and consonants; use preservation mode first and compare by listening. Competing voices, music, clipping, and room echo are not reliably repaired by this baseline.
 
 WAV/FLAC/M4A decoding uses FFmpeg. Limits are 100 MB, 16–96 kHz, mono/stereo, and 1–180 seconds for interviews or 1–12 seconds for previewing a voice reference; synthesis still requires 3–12 seconds. Overlong inputs are rejected, never silently accepted as excerpts. Original source bytes, decoded originals, processed WAVs, and processing metadata persist under `data/denoise/<id>/` (override with `VOICEMIMIC_DENOISE_DIR`). These files are excluded from Git and are not removed when an interview or voice profile is deleted; remove the corresponding denoise folder separately if needed.
 
@@ -146,3 +146,9 @@ Limits: one non-live video, at most 30 minutes, 300 MB download/file limit, and 
 Link support depends on platform changes, network restrictions, and the extractor. No login, browser-cookie extraction, paywall/DRM bypass, or playlist import is provided. A local video/audio upload fallback is included. If recognition fails after retrieval, the imported audio remains available for manual clipping or transcription retry. For full YouTube extractor support, yt-dlp may require an installed supported JavaScript runtime; the app enables Node when it is on PATH, and yt-dlp's default Deno support remains available. Installing the project includes yt-dlp's default dependencies.
 
 Audio, transcript timestamps, source URL/title, and excerpt provenance are saved under `data/video-imports/<id>/` (override `VOICEMIMIC_VIDEO_DIR`). Downloaded container files and downloader metadata are removed after successful conversion. Import folders are separate from voice/interview records and must be deleted separately. This remains a localhost-only, single-user prototype; do not expose the URL-fetching interface as a public service.
+
+## From interview answers to speech generation
+
+In 核对文字, save the reviewed transcript and approval, then expand 下一步：用这条回答生成声音. Choose a complete 3–12 second sentence, preview it, and enter its exact words. A full-answer excerpt pre-fills the reviewed text; partial excerpts require manual text because edited transcripts are not word-aligned. 送到我的声音 transfers the audio and text and clears the synthesis-permission checkbox for explicit confirmation. Generate a test sentence, then save a named voice to use it for narration. Changes to the selected sample, boundaries, or saved review invalidate an old excerpt. Deleting a source answer removes its interview excerpt files, but independently saved voice profiles/caches remain separate.
+
+New interview recordings retain the decoded input sample rate rather than forcing 16 kHz; transcription from an audio path performs its own model input conversion. Previously stored 16 kHz recordings cannot recover lost high frequencies. This bridge reuses reference timbre; it does not train personality or automatically transfer learned prosody.

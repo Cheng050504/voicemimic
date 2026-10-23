@@ -1,5 +1,6 @@
 """Reviewed, source-grounded interview samples; never automatic clone training."""
 import json
+import math
 import re
 import shutil
 import subprocess
@@ -104,7 +105,7 @@ class InterviewStore:
         target = folder / (sample_id + '.wav')
         try:
             subprocess.run([ffmpeg, '-nostdin', '-v', 'error', '-y', '-i', str(Path(audio).resolve()),
-                            '-vn', '-t', '181', '-ac', '1', '-ar', '16000', str(target)],
+                            '-vn', '-t', '181', '-ac', '1', str(target)],
                            check=True, capture_output=True, timeout=60)
             duration = sf.info(target).duration
             if not 1 <= duration <= 180:
@@ -128,6 +129,33 @@ class InterviewStore:
         if sample is None:
             raise ValueError('找不到此样本。')
         return folder, data, sample
+
+    def voice_excerpt(self, identifier, sample_id, start, end):
+        folder, _, sample = self.sample(identifier, sample_id)
+        if not sample['approved']:
+            raise ValueError('请先保存逐字稿并确认样本审核。')
+        start, end = float(start), float(end)
+        if not all(math.isfinite(x) for x in (start, end)) or not 0 <= start < end <= sample['duration_seconds'] or not 3 <= end - start <= 12:
+            raise ValueError('请在回答范围内选择 3–12 秒的完整句子。')
+        target = folder / f'{sample_id}-reference-{uuid.uuid4().hex}.wav'
+        with sf.SoundFile(folder / sample['audio']) as source:
+            first, last = round(start * source.samplerate), round(end * source.samplerate)
+            source.seek(first)
+            sf.write(target, source.read(last - first), source.samplerate)
+        # Partial excerpts need a matching manual transcript; do not assume word alignment.
+        text = sample['text'] if start == 0 and abs(end - sample['duration_seconds']) < 0.001 else ''
+        return dict(path=str(target), sample_id=sample_id, start=start, end=end,
+                    review_text=sample['text'], text=text)
+
+    def voice_reference(self, identifier, sample_id, excerpt, start, end, text):
+        _, _, sample = self.sample(identifier, sample_id)
+        if not excerpt or excerpt['sample_id'] != sample_id or excerpt['start'] != float(start) or excerpt['end'] != float(end):
+            raise ValueError('选择已改变，请重新截取试听。')
+        if not sample['approved'] or sample['text'] != excerpt['review_text']:
+            raise ValueError('样本审核已变化，请重新审核并截取。')
+        if not (text or '').strip() or len(text) > 1500:
+            raise ValueError('请填写与片段完全一致的文字（1–1,500 字符）。')
+        return excerpt['path'], text.strip()
 
     def transcribe(self, identifier, sample_id):
         folder, data, sample = self.sample(identifier, sample_id)
@@ -154,6 +182,8 @@ class InterviewStore:
         data['observations'] = [o for o in data['observations'] if o['sample_id'] != sample_id]
         self.save(folder, data)
         (folder / sample['audio']).unlink(missing_ok=True)
+        for path in folder.glob(f'{sample_id}-reference-*.wav'):
+            path.unlink()
 
     def propose(self, identifier, model):
         folder, data = self.load(identifier)

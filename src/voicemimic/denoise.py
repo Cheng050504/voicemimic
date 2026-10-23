@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-PRESETS = {'轻度（推荐）': 6, '标准': 10}
+PRESETS = {'保真优先（推荐）': 6, '轻度': 6, '轻度（推荐）': 6, '标准': 10}
 
 
 def fingerprint(path):
@@ -33,10 +33,10 @@ def run_ffmpeg(args):
         raise ValueError('音频处理失败，请检查文件格式及 FFmpeg 是否支持 afftdn。') from exc
 
 
-def denoise(path, preset='轻度（推荐）', max_seconds=180, root='data/denoise'):
+def denoise(path, preset='保真优先（推荐）', max_seconds=180, root='data/denoise'):
     source_hash = fingerprint(path)
     if preset not in PRESETS:
-        raise ValueError('请选择轻度或标准降噪。')
+        raise ValueError('请选择保真优先、轻度或标准降噪。')
     folder = Path(root).resolve() / uuid.uuid4().hex
     folder.mkdir(parents=True)
     try:
@@ -55,12 +55,20 @@ def denoise(path, preset='轻度（推荐）', max_seconds=180, root='data/denoi
         if float(np.sqrt(np.mean(audio ** 2))) < 0.0001:
             raise ValueError('录音太安静，无法可靠降噪。')
         # Modest attenuation, smooth gains, no EQ, gate, pitch/time change or loudness boost.
-        filter_text = f'afftdn=nr={PRESETS[preset]}:nf=-45:tn=1:gs=6'
+        # afftdn delays audio by two analysis hops. Flush and remove that delay
+        # before blending, otherwise the dry/wet mixture cancels voice harmonics.
+        delay = 2 * (sr // 80)
+        filter_text = (f'apad=pad_len={delay},afftdn=nr={PRESETS[preset]}:nf=-45:tn=1:gs=6,'
+                       f'atrim=start_sample={delay}:end_sample={delay + len(audio)},asetpts=PTS-STARTPTS')
         run_ffmpeg(['-i', str(original), '-af', filter_text, '-c:a', 'pcm_f32le', str(cleaned)])
         result, result_sr = sf.read(cleaned, always_2d=True, dtype='float32')
         if result_sr != sr or result.shape != audio.shape or not np.isfinite(result).all():
             raise ValueError('降噪输出校验失败，原音频未改变。')
-        record = dict(source_hash=source_hash, original=str(original), cleaned=str(cleaned),
+        mix = 0.35 if preset == '保真优先（推荐）' else 1.0
+        if mix < 1:
+            result = (1 - mix) * audio + mix * result
+            sf.write(cleaned, result, sr, subtype='FLOAT')
+        record = dict(delay_compensation_samples=delay, wet_mix=mix, source_hash=source_hash, original=str(original), cleaned=str(cleaned),
                       cleaned_hash=fingerprint(cleaned), preset=preset, filter=filter_text,
                       sample_rate=sr, channels=audio.shape[1], frames=len(audio))
         (folder / 'processing.json').write_text(json.dumps(record, ensure_ascii=False, indent=2))

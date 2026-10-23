@@ -63,3 +63,9 @@ FFmpeg fallback decodes compressed reference audio to temporary PCM before exist
 - Real local Whisper-base recognized the bundled official F5 English example as “Some call me nature, others call me mother nature.” with a 0–5 second segment. A five-second excerpt was generated from the retained 48 kHz audio.
 - Public-platform extraction, long-video transcription accuracy, browser interactions, and human listening quality were not verified. Platform availability is not guaranteed by the local HTTP fixture test.
 - Running Gradio API smoke test completed real Whisper import, five-second excerpt creation, reference audio/transcript adoption, interview audio/source-context adoption, and rejection of an excerpt after its requested boundary changed. Homepage returned HTTP 200 and all callback component references resolved. This is API verification, not a browser visual test.
+
+## Interview-to-voice bridge and preservation-first denoising
+
+- **59 tests passed**. Added review-gated excerpt creation, source-review/boundary invalidation, source-deletion cleanup, preservation of a 48 kHz interview input, and no guessed transcript for partial excerpts.
+- Added aligned dry/wet preservation mode. Actual FFmpeg pulse tests at 24/44.1/48 kHz verify timing alignment and retention of the final pulse; synthetic harmonic/noise tests check both light and preservation presets with deliberately different residual-noise expectations.
+- Prepared equal-gain original/preservation/light listening copies of the user-provided M4A. Decoded duration is approximately 8.02 seconds, RMS approximately 0.00675, peak approximately 0.0493, and no near-full-scale clipping detected. Listening copies use identical +18.06 dB gain; the original source is unchanged. Objective checks do not certify voice identity or perceived quality.

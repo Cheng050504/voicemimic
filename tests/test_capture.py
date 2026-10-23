@@ -93,3 +93,39 @@ def test_invalid_id_rejected(interview):
     store, _ = interview
     with pytest.raises(ValueError):
         store.load('../escape')
+
+
+def test_voice_excerpt_requires_review_and_tracks_changes(sample):
+    store, identifier, sid = sample
+    with pytest.raises(ValueError, match='审核'):
+        store.voice_excerpt(identifier, sid, 0, 3)
+    store.review(identifier, sid, 'I prefer short answers.', True)
+    clip = store.voice_excerpt(identifier, sid, 0, 3)
+    assert sf.info(clip['path']).duration == 3
+    assert clip['text'] == 'I prefer short answers.'
+    assert store.voice_reference(identifier, sid, clip, 0, 3, clip['text'])[0] == clip['path']
+    with pytest.raises(ValueError, match='选择已改变'):
+        store.voice_reference(identifier, sid, clip, 0, 2, clip['text'])
+    store.review(identifier, sid, 'Corrected text.', True)
+    with pytest.raises(ValueError, match='审核已变化'):
+        store.voice_reference(identifier, sid, clip, 0, 3, clip['text'])
+    with pytest.raises(ValueError, match='3–12'):
+        store.voice_excerpt(identifier, sid, 0, 2)
+    from pathlib import Path
+    store.delete(identifier, sid, True)
+    assert not Path(clip['path']).exists()
+
+
+def test_new_capture_keeps_sample_rate_and_partial_text_is_not_guessed(interview, tmp_path):
+    if not shutil.which('ffmpeg'):
+        pytest.skip('FFmpeg required')
+    store, identifier = interview
+    path = tmp_path/'high_rate.wav'
+    sf.write(path, np.sin(np.arange(48000*5)*.1)*.2, 48000)
+    sid = store.add(identifier, str(path), 'Question', '')
+    folder, _, sample = store.sample(identifier, sid)
+    assert sf.info(folder/sample['audio']).samplerate == 48000
+    store.review(identifier, sid, 'A complete five-second reply.', True)
+    clip=store.voice_excerpt(identifier,sid,1,4)
+    assert clip['text'] == ''
+    assert sf.info(clip['path']).samplerate == 48000

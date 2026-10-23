@@ -28,8 +28,8 @@ def add_denoise_ui(recording, max_seconds):
             raise gr.Error(str(exc)) from exc
 
     with gr.Accordion('录音有杂音？先试听降噪（可选）', open=False):
-        gr.Markdown('先试轻度，尽量保留音色与气声。适合持续底噪；人声重叠、音乐和爆音未必能修好。')
-        strength = gr.Radio(['轻度（推荐）', '标准'], value='轻度（推荐）', label='降噪强度')
+        gr.Markdown('先试保真优先：混合原音与轻度降噪，宁可留些底噪，也少损失气声。适合持续底噪；人声重叠、音乐和爆音未必能修好。')
+        strength = gr.Radio(['保真优先（推荐）', '轻度', '标准'], value='保真优先（推荐）', label='降噪强度')
         process = gr.Button('预览降噪')
         with gr.Row():
             original = gr.Audio(label='处理前', interactive=False)

@@ -20,16 +20,17 @@ def fixture_audio(path, seconds=4, stereo=False):
     return audio, sr
 
 
-def test_reduces_noise_preserves_shape_voice_and_source(tmp_path):
+@pytest.mark.parametrize('preset, noise_ratio', [('轻度', .8), ('保真优先（推荐）', .95)])
+def test_reduces_noise_preserves_shape_voice_and_source(tmp_path, preset, noise_ratio):
     source = tmp_path/'input.wav'
     audio, sr = fixture_audio(source, stereo=True)
     before = hashlib.sha256(source.read_bytes()).hexdigest()
-    result = denoise(source, root=tmp_path/'runs')
+    result = denoise(source, preset, root=tmp_path/'runs')
     out, out_sr = sf.read(result['cleaned'])
     assert out_sr == sr and out.shape == audio.shape
     assert hashlib.sha256(source.read_bytes()).hexdigest() == before
     # Settled noise-only tail and harmonic voice energy, not a perceptual identity claim.
-    assert np.mean(out[int(3.5*sr):]**2) < np.mean(audio[int(3.5*sr):]**2) * .8
+    assert np.mean(out[int(3.5*sr):]**2) < np.mean(audio[int(3.5*sr):]**2) * noise_ratio
     segment = slice(int(1.5*sr), int(2.5*sr))
     ratio = np.sqrt(np.mean(out[segment]**2) / np.mean(audio[segment]**2))
     assert .85 < ratio < 1.1
@@ -61,3 +62,17 @@ def test_invalid_and_silent_inputs(tmp_path):
     with pytest.raises(ValueError, match='太安静'):
         denoise(source, root=tmp_path/'runs')
     assert list((tmp_path/'runs').iterdir()) == []
+
+
+@pytest.mark.parametrize('sr', [24000, 44100, 48000])
+def test_filter_alignment_and_tail_retained(tmp_path, sr):
+    source = tmp_path/'pulses.wav'
+    audio = np.zeros(sr*3, dtype='float32')
+    audio[sr] = .5
+    audio[-100] = .5
+    sf.write(source,audio,sr,subtype='FLOAT')
+    result=denoise(source, '轻度', root=tmp_path/'runs')
+    out,_=sf.read(result['cleaned'])
+    assert len(out)==len(audio)
+    assert abs(np.argmax(np.abs(out[sr-50:sr+50]))-50)<=1
+    assert np.max(np.abs(out[-150:])) > .1

@@ -104,6 +104,16 @@ def add_capture_ui():
             text = gr.Textbox(label='逐字稿（请核对并修正）', lines=6)
             approved = gr.Checkbox(label='本人已核对，并同意此样本用于后续声音与表达学习。')
             review_button = gr.Button('保存逐字稿与审核状态')
+            with gr.Accordion("下一步：用这条回答生成声音", open=False):
+                gr.Markdown('先保存上方审核，再选 3–12 秒完整句子。试听并填写片段文字，然后送到「我的声音」生成新话。表达观察尚未参与声音生成。')
+                voice_clip = gr.State(None)
+                with gr.Row():
+                    clip_start = gr.Number(label='片段开始（秒）', value=0)
+                    clip_end = gr.Number(label='片段结束（秒）', value=8)
+                preview_voice = gr.Button('截取声音样本并试听')
+                clip_player = gr.Audio(label='声音样本试听', interactive=False)
+                clip_text = gr.Textbox(label='片段里说了什么？请逐字核对', lines=3)
+                use_voice = gr.Button('送到我的声音 → 生成新话', variant='primary')
             with gr.Accordion("删除回答", open=False):
                 delete_confirm = gr.Checkbox(label='确认删除所选回答及其相关观察（本机档案不可恢复）')
                 delete_button = gr.Button('删除所选回答')
@@ -143,4 +153,24 @@ def add_capture_ui():
     approve.click(safe(approve_observation), [interview, obs, claim, kind, confirmed], [status, export], **queue)
     export_button.click(safe(store.export), [interview], export, **queue)
 
-    return recording, context, steps
+    def excerpt(identifier, sid, begin, finish):
+        result = store.voice_excerpt(identifier, sid, begin, finish)
+        return result, result['path'], result['text']
+
+    def reset_excerpt(identifier, sid):
+        if not sid:
+            return None, None, '', 0, 8
+        _, _, item = store.sample(identifier, sid)
+        return None, None, '', 0, min(12, item['duration_seconds'])
+
+    preview_voice.click(safe(excerpt), [interview, sample, clip_start, clip_end], [voice_clip, clip_player, clip_text], **queue)
+    sample.change(safe(reset_excerpt), [interview, sample], [voice_clip, clip_player, clip_text, clip_start, clip_end], **queue)
+
+    def connect_voice(reference, transcript, synth_consent, tabs):
+        def transfer(identifier, sid, clip, begin, finish, words):
+            path, words = store.voice_reference(identifier, sid, clip, begin, finish, words)
+            return path, words, False, gr.update(selected='voice')
+        use_voice.click(safe(transfer), [interview, sample, voice_clip, clip_start, clip_end, clip_text],
+                        [reference, transcript, synth_consent, tabs], **queue)
+
+    return recording, context, steps, connect_voice
